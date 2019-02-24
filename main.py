@@ -114,9 +114,6 @@ class music_player:
         fakesink = Gst.ElementFactory.make("fakesink", "fakesink")
         self.player.set_property("video-sink", fakesink)
         #self.player.connect("about-to-finish",  lambda: print('CHANGE SONG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'))
-        self.bus = self.player.get_bus()
-        self.bus.add_signal_watch()
-        self.bus.connect('message', self.on_message)
 
         self.is_paused = tk.BooleanVar()
         self.is_paused.set(True)
@@ -126,6 +123,7 @@ class music_player:
         self.is_repeat.set(False)
 
         self.curr_song = None
+        self.skip_trace = False
 
     def add_folder_dialog(self):
         folder = []
@@ -291,13 +289,16 @@ class music_player:
         self.is_paused.set(not self.is_paused.get())
 
     def increase_slider(self):
-        self.bus.peek()
         if self.player.get_state(1).state == Gst.State.PLAYING:
             status,position = self.player.query_position(Gst.Format.TIME)
             success, duration = self.player.query_duration(Gst.Format.TIME)
             percentage_passed = float(position) / Gst.SECOND * (100 / (duration / Gst.SECOND))
+            self.skip_trace = True
             self.song_prog_scl_var.set(percentage_passed)
             self.song_prog_scl.update()
+            self.skip_trace = False
+            if int(float(self.song_prog_scl_var.get())) == 100:
+                self.change_song(1)
             self.master.after(500, self.increase_slider)
 
     def change_song(self, change):
@@ -313,19 +314,11 @@ class music_player:
         self.play_pause()
         self.play_pause()
 
-    def on_message(self, bus, message):
-        print(message)
-        if message.type == Gst.Message.EOS:
-            self.change_song(1)
-        elif message.type == Gst.Message.ERROR:
-            self.player.set_state(Gst.State.NULL)
-            err, debug = message.parse_error()
-            print("Error: {0}, {1}".format(err, debug))
-
     def slider_change(self, *args):
-        success, duration = self.player.query_duration(Gst.Format.TIME)
-        self.player.seek_simple(Gst.Format.TIME,  Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, (float(self.song_prog_scl_var.get())/100)*duration)
-        self.increase_slider()
+        if not self.skip_trace:
+            success, duration = self.player.query_duration(Gst.Format.TIME)
+            self.player.seek_simple(Gst.Format.TIME,  Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, (float(self.song_prog_scl_var.get())/100)*duration)
+            self.master.after(1000, self.increase_slider)
 
 class AutoScroll(object):
     '''Configure the scrollbars for a widget.'''
