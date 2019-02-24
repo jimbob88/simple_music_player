@@ -288,12 +288,11 @@ class music_player:
         self.is_paused.set(not self.is_paused.get())
 
     def increase_slider(self):
-        print(Gst.State.PLAYING, self.player.get_state(1).state)
-        print(self.player.get_state(1))
         self.bus.peek()
         if self.player.get_state(1).state == Gst.State.PLAYING:
-            self.time_passed = time.time()- self.start_time
-            percentage_passed = (self.time_passed / self.curr_song['Duration'])*100
+            status,position = self.player.query_position(Gst.Format.TIME)
+            success, duration = self.player.query_duration(Gst.Format.TIME)
+            percentage_passed = float(position) / Gst.SECOND * (100 / (duration / Gst.SECOND))
             self.song_prog_scl.set(percentage_passed)
             self.song_prog_scl.update()
             self.master.after(500, self.increase_slider)
@@ -319,6 +318,8 @@ class music_player:
             self.player.set_state(Gst.State.NULL)
             err, debug = message.parse_error()
             print("Error: {0}, {1}".format(err, debug))
+
+
 
 class AutoScroll(object):
     '''Configure the scrollbars for a widget.'''
