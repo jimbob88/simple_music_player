@@ -75,7 +75,10 @@ class music_player:
         self.song_title = tk.Label(self.controls_frame)
         self.song_title.grid(row=0, column=4)
 
-        self.song_prog_scl = ttk.Scale(self.controls_frame, from_=0, to=100, orient='horizontal')
+        self.song_prog_scl_var = tk.StringVar()
+        self.song_prog_scl_var.set(0)
+        self.song_prog_scl_var.trace('w', self.slider_change)
+        self.song_prog_scl = ttk.Scale(self.controls_frame, from_=0, to=100, orient='horizontal', variable=self.song_prog_scl_var)
         self.song_prog_scl.grid(row=0, column=5, sticky='ew')
         self.controls_frame.grid_columnconfigure(5, weight=1)
 
@@ -293,7 +296,7 @@ class music_player:
             status,position = self.player.query_position(Gst.Format.TIME)
             success, duration = self.player.query_duration(Gst.Format.TIME)
             percentage_passed = float(position) / Gst.SECOND * (100 / (duration / Gst.SECOND))
-            self.song_prog_scl.set(percentage_passed)
+            self.song_prog_scl_var.set(percentage_passed)
             self.song_prog_scl.update()
             self.master.after(500, self.increase_slider)
 
@@ -319,7 +322,10 @@ class music_player:
             err, debug = message.parse_error()
             print("Error: {0}, {1}".format(err, debug))
 
-
+    def slider_change(self, *args):
+        success, duration = self.player.query_duration(Gst.Format.TIME)
+        self.player.seek_simple(Gst.Format.TIME,  Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, (float(self.song_prog_scl_var.get())/100)*duration)
+        self.increase_slider()
 
 class AutoScroll(object):
     '''Configure the scrollbars for a widget.'''
