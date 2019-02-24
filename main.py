@@ -1,9 +1,11 @@
 try:
     import tkinter as tk
     import tkinter.ttk as ttk
+    import tkinter.messagebox as tkMessageBox
 except:
     import Tkinter as tk
     import ttk
+    import tkMessageBox
 
 import Pmw
 import platform
@@ -28,6 +30,7 @@ class music_player:
         self.master.configure(menu=self.menubar)
         self.filemenu = tk.Menu(self.menubar, tearoff=0)
         self.filemenu.add_command(label="Add Folder", command=self.add_folder_dialog)
+        self.filemenu.add_command(label="Open M3U", command=self.add_m3u_dialog)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
 
         self.sidemenubar_frame = Pmw.ScrolledFrame(self.master, usehullsize=1, hull_width=250)
@@ -128,10 +131,11 @@ class music_player:
     def add_folder_dialog(self):
         folder = []
         def run_dialog(_None):
-            open_folder_dialog = Gtk.FileChooserDialog("Please choose a folder", None,
-                        Gtk.FileChooserAction.SELECT_FOLDER,
-                        (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                        "Select", Gtk.ResponseType.OK))
+            open_folder_dialog = Gtk.FileChooserDialog(title="Please choose a folder", parent=None,
+                        action=Gtk.FileChooserAction.SELECT_FOLDER,
+                        )
+            open_folder_dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            "Select", Gtk.ResponseType.OK)
             response = open_folder_dialog.run()
             if response == Gtk.ResponseType.OK:
                 folder.append(open_folder_dialog.get_filename())
@@ -319,6 +323,75 @@ class music_player:
             success, duration = self.player.query_duration(Gst.Format.TIME)
             self.player.seek_simple(Gst.Format.TIME,  Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, (float(self.song_prog_scl_var.get())/100)*duration)
             self.master.after(1000, self.increase_slider)
+
+    def add_m3u_dialog(self):
+        m3u = []
+        def run_dialog(_None):
+            open_m3u_dialog = Gtk.FileChooserDialog(title="Please choose a .m3u file", parent=None,
+                        action=Gtk.FileChooserAction.OPEN,
+                        )
+            open_m3u_dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            "Select", Gtk.ResponseType.OK)
+            m3u_filter=Gtk.FileFilter()
+            m3u_filter.set_name("M3U (*.m3u)")
+            m3u_filter.add_pattern("*.[Mm][3][Uu]")
+            open_m3u_dialog.add_filter(m3u_filter)
+            response = open_m3u_dialog.run()
+            if response == Gtk.ResponseType.OK:
+                m3u.append(open_m3u_dialog.get_filename())
+            elif response == Gtk.ResponseType.CANCEL:
+                pass
+
+            open_m3u_dialog.destroy()
+            Gtk.main_quit()
+        Gdk.threads_add_idle(GLib.PRIORITY_DEFAULT, run_dialog, None)
+        Gtk.main()
+        self.add_m3u(m3u[0])
+
+    def add_m3u(self, m3u):
+        def createAbsolutePath(path):
+        	if not os.path.isabs(path):
+        		currentDir = os.path.dirname(os.path.realpath(m3u))
+        		path = os.path.join(currentDir, path)
+
+        	return path
+        files = []
+        with open(m3u, 'r') as f:
+            for line in f:
+                if os.path.isfile(createAbsolutePath(line.strip())):
+                    files.append(createAbsolutePath(line.strip()))
+
+        for filename in files:
+            if not any(substring in filename.casefold() for substring in ['.mp3', '.wav', '.flac', '.wma', '.mp4', '.m4a', '.ogg', '.opus']):
+                continue
+            audio_file = tinytag.TinyTag.get(filename, image=True)
+            song = collections.OrderedDict({
+                'Artist': audio_file.artist,
+                'Album': audio_file.album,
+                'Album Artist':  audio_file.albumartist,
+                'Title': audio_file.title,
+                'Track Number': audio_file.track,
+                'Genre':  audio_file.genre,
+                'Disc': audio_file.disc,
+                'Duration': audio_file.duration,
+                'Image': audio_file.get_image(),
+                'File': filename
+                })
+            title = 'Disc {0} - {1} - {2}'.format(song['Disc'], song['Track Number'], song['Title'])
+            try:
+                self.artists[song['Artist']][title] = song
+            except KeyError:
+                self.artists[song['Artist']] = {title: song}
+            try:
+                self.albums[song['Album']][title] = song
+            except KeyError:
+                self.albums[song['Album']] = {title: song}
+            try:
+                self.genres[song['Genre']][title] = song
+            except KeyError:
+                self.genres[song['Genre']] = {title: song}
+        self.refresh_treeviews()
+
 
 class AutoScroll(object):
     '''Configure the scrollbars for a widget.'''
