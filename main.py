@@ -335,7 +335,19 @@ class music_player:
 
 
     def import_array(self, arr):
-        for filename in arr:
+        prog_win = tk.Toplevel()
+        prog_win.title("Progress")
+        prog_win.resizable(False, False)
+        prog_win.wm_attributes('-type', 'splash')
+        curr_file = tk.Label(prog_win, text="")
+        curr_file.grid(sticky='nsew')
+        progress = ttk.Progressbar(prog_win, orient="horizontal",
+                                        length=200, mode="determinate")
+        progress["maximum"] = len(arr)
+        progress.grid(sticky='nsew')
+        for idx, filename in enumerate(arr):
+            progress["value"] = idx
+            curr_file["text"] = '{filename} - ({idx}/{max})'.format(filename=os.path.basename(filename), idx=idx, max=len(arr))
             if not any(substring in filename.casefold() for substring in ['.mp3', '.wav', '.flac', '.wma', '.mp4', '.m4a', '.ogg', '.opus']):
                 continue
             audio_file = tinytag.TinyTag.get(filename, image=True)
@@ -364,7 +376,9 @@ class music_player:
                 self.genres[song['Genre']][title] = song
             except KeyError:
                 self.genres[song['Genre']] = {title: song}
+            prog_win.update()
         self.refresh_treeviews()
+        prog_win.destroy()
 
 
 class AutoScroll(object):
