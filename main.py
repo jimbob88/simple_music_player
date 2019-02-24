@@ -150,37 +150,8 @@ class music_player:
 
     def add_folder(self, folder):
         for root, directories, filenames in os.walk(folder):
-            for filename in filenames:
-                if not any(substring in filename.casefold() for substring in ['.mp3', '.wav', '.flac', '.wma', '.mp4', '.m4a', '.ogg', '.opus']):
-                    continue
-                audio_file = tinytag.TinyTag.get(os.path.join(root, filename), image=True)
-                song = collections.OrderedDict({
-                    'Artist': audio_file.artist,
-                    'Album': audio_file.album,
-                    'Album Artist':  audio_file.albumartist,
-                    'Title': audio_file.title,
-                    'Track Number': audio_file.track,
-                    'Genre':  audio_file.genre,
-                    'Disc': audio_file.disc,
-                    'Duration': audio_file.duration,
-                    'Image': audio_file.get_image(),
-                    'File': os.path.join(root, filename)
-                    })
-                title = 'Disc {0} - {1} - {2}'.format(song['Disc'], song['Track Number'], song['Title'])
-                try:
-                    self.artists[song['Artist']][title] = song
-                except KeyError:
-                    self.artists[song['Artist']] = {title: song}
-                try:
-                    self.albums[song['Album']][title] = song
-                except KeyError:
-                    self.albums[song['Album']] = {title: song}
-                try:
-                    self.genres[song['Genre']][title] = song
-                except KeyError:
-                    self.genres[song['Genre']] = {title: song}
-
-        self.refresh_treeviews()
+            filenames = [os.path.join(root, filename) for filename in filenames]
+            self.import_array(filenames)
 
     def refresh_treeviews(self, tree='all', sort_by='Track Number'):
         def refresh_genre():
@@ -360,8 +331,11 @@ class music_player:
             for line in f:
                 if os.path.isfile(createAbsolutePath(line.strip())):
                     files.append(createAbsolutePath(line.strip()))
+        self.import_array(files)
 
-        for filename in files:
+
+    def import_array(self, arr):
+        for filename in arr:
             if not any(substring in filename.casefold() for substring in ['.mp3', '.wav', '.flac', '.wma', '.mp4', '.m4a', '.ogg', '.opus']):
                 continue
             audio_file = tinytag.TinyTag.get(filename, image=True)
