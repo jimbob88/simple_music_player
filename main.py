@@ -194,6 +194,7 @@ class music_player:
         ttk.Button(radio_select_frame, text="All Main BBC Stations", command=lambda: self.radio_refresh_treeviews('main')).grid(row=0, column=1)
         ttk.Button(radio_select_frame, text="All BBC Stations", command=lambda: self.radio_refresh_treeviews('bbc')).grid(row=0, column=2)
         ttk.Button(radio_select_frame, text="All Custom Stations", command=lambda: self.radio_refresh_treeviews('custom')).grid(row=0, column=3)
+        ttk.Button(radio_select_frame, text="Add Radio Station Url", command=self.add_radio_url).grid(row=0, column=4)
         radio_select_frame.grid(row=0, column=0, sticky='nsew')
 
         self.radio_station_treeview = ScrolledTreeView(self.main_frame)
@@ -601,6 +602,24 @@ class music_player:
         for station, url in self.visible_stations.items():
             self.radio_station_treeview.insert('', 'end', text=station, values=(url,))
 
+    def add_radio_url(self):
+        def add():
+            self.radio_stations.update({station_name_ent.get(): station_url_ent.get()})
+
+        def cancel():
+            add_url_win.quit()
+            add_url_win.destroy()
+        add_url_win = tk.Toplevel(bg='white')
+        style = ttk.Style(add_url_win)
+        style.configure("TLabel", background='white')
+        ttk.Label(add_url_win, text='Radio Station Name: ', style='TLabel').grid(row=0, column=0)
+        station_name_ent = ttk.Entry(add_url_win)
+        station_name_ent.grid(row=0, column=1)
+        ttk.Label(add_url_win, text='Radio Station URL: ', style='TLabel').grid(row=1, column=0)
+        station_url_ent = ttk.Entry(add_url_win)
+        station_url_ent.grid(row=1, column=1)
+        ttk.Button(add_url_win, text='Add', command=add).grid(row=2, column=0)
+        ttk.Button(add_url_win, text='Cancel').grid(row=2, column=1)
 
 class AutoScroll(object):
     '''Configure the scrollbars for a widget.'''
