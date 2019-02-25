@@ -39,7 +39,6 @@ class music_player:
         self.filemenu.add_command(label="Save to Cache", command=self.save_to_cache)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
 
-        self.radio_stations = collections.OrderedDict()
 
         self.sidemenubar_frame = tk.Frame(self.master, width=250)
         self.sidemenubar_frame.grid(row=0, column=0, rowspan=2, sticky="ns")
@@ -60,6 +59,12 @@ class music_player:
         self.main_frame = tk.Frame(self.master)
         self.main_frame.grid(row=0, column=1, columnspan=3, rowspan=2, sticky='nsew')
 
+        self.radio_stations = collections.OrderedDict()
+        self.artists = {}
+        self.albums = {}
+        self.genres = {}
+        self.songs = collections.OrderedDict()
+
         self.controls_frame = tk.Frame(self.master, bg='white')
         self.controls_frame.grid(row=2, column=0, columnspan=4, sticky="nsew")
         self.main_frame_change()
@@ -72,9 +77,6 @@ class music_player:
         self.master.grid_columnconfigure(3, weight=1)
 
 
-        self.artists = {}
-        self.albums = {}
-        self.genres = {}
 
         self.genre_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
         self.artist_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
@@ -83,7 +85,6 @@ class music_player:
         self.sidemenubar_treeview.bind('<<TreeviewSelect>>', lambda e: self.main_frame_change())
         self.master.bind('f5', lambda e: self.refresh_treeviews('music'))
 
-        self.songs = collections.OrderedDict()
 
         Gst.init()
         self.player = Gst.ElementFactory.make("playbin", "player")
@@ -180,6 +181,8 @@ class music_player:
 
         self.shuffle_butt = ttk.Button(self.controls_frame, text='Shuffle Play', command=lambda: self.is_random.set(not self.is_random.get()))
         self.shuffle_butt.grid(row=0, column=8)
+
+        self.refresh_treeviews('all')
 
 
     def radio_collection_init(self):
