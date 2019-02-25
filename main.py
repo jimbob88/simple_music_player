@@ -84,6 +84,7 @@ class music_player:
         self.music_treeview.bind('<<TreeviewSelect>>', lambda e: self.play_song())
         self.sidemenubar_treeview.bind('<<TreeviewSelect>>', lambda e: self.main_frame_change())
         self.master.bind('f5', lambda e: self.refresh_treeviews('music'))
+        self.master.bind('<Control-f>', lambda e: self.search_music())
 
 
         Gst.init()
@@ -510,6 +511,7 @@ class music_player:
         prog_win.resizable(False, False)
         prog_win.wm_attributes('-type', 'splash')
         prog_win.attributes("-topmost", True)
+        prog_win.geometry('200x44+{:.0f}+{:.0f}'.format(self.master.winfo_x()+(self.master.winfo_width()/2)-100, self.master.winfo_y()+(self.master.winfo_height()/2)-22)) #self.master.winfo_height(), self.master.winfo_width()
 
         curr_file = tk.Label(prog_win, text="")
         curr_file.grid(sticky='nsew')
@@ -620,6 +622,74 @@ class music_player:
         station_url_ent.grid(row=1, column=1)
         ttk.Button(add_url_win, text='Add', command=add).grid(row=2, column=0)
         ttk.Button(add_url_win, text='Cancel').grid(row=2, column=1)
+
+    def search_music(self):
+        def search(*args):
+            def search_command():
+                if orig_search_var != search_var.get():
+                    return
+                if search_var.get() != '' and len(self.songs) > 2:
+                    songs = {}
+                    for title, value in self.songs.items():
+                        inner_dict = {key: val.casefold() for key, val in value.items() if type(val) == str}
+                        if any({var: search_var.get().casefold() in x for var, x in inner_dict.items()}.values()):
+                            songs[title] = value
+                    self.songs = collections.OrderedDict(songs)
+                    genres = collections.OrderedDict()
+                    albums = collections.OrderedDict()
+                    artists = collections.OrderedDict()
+                    for title, song in self.songs.items():
+                        try:
+                            genres[song['Genre']][title] = song
+                        except KeyError:
+                            genres[song['Genre']] = {title: song}
+                        try:
+                            artists[song['Artist']][title] = song
+                        except KeyError:
+                            artists[song['Artist']] = {title: song}
+                        try:
+                            albums[song['Album']][title] = song
+                        except KeyError:
+                            albums[song['Album']] = {title: song}
+                    self.genres = genres
+                    self.artists = artists
+                    self.albums = albums
+
+                    self.refresh_treeviews('all')
+                    search_ent.unbind("<Return>")
+
+            orig_search_var = search_var.get()
+            self.master.after(1000, search_command)
+            search_ent.bind('<Return>', lambda e: search_command)
+
+
+        def search_exit():
+            self.genres = genre_back
+            self.artists = artist_back
+            self.albums = album_back
+            self.refresh_treeviews('all')
+            search_win.destroy()
+
+        album_back = self.albums
+        genre_back = self.genres
+        artist_back = self.artists
+        search_win = tk.Toplevel(master=self.master)
+        search_win.title("Search")
+        search_win.resizable(False, False)
+        search_win.wm_attributes('-type', 'splash')
+        search_win.attributes("-topmost", True)
+        search_win.geometry('200x44+{:.0f}+{:.0f}'.format(self.master.winfo_x()+(self.master.winfo_width()/2)-100, self.master.winfo_y())) #self.master.winfo_height(), self.master.winfo_width()   +(self.master.winfo_height()/2)-22)
+
+        search_var = tk.StringVar()
+        search_ent = ttk.Entry(search_win, textvariable=search_var)
+        search_ent.grid(row=0, column=0, sticky='nsew')
+        search_ent.focus()
+
+        search_win.grid_rowconfigure(0, weight=1)
+        search_win.grid_columnconfigure(0, weight=1)
+
+        search_var.trace('w', search)
+        search_win.bind('<Escape>', lambda e: search_exit())
 
 class AutoScroll(object):
     '''Configure the scrollbars for a widget.'''
