@@ -39,6 +39,8 @@ class music_player:
         self.filemenu.add_command(label="Save to Cache", command=self.save_to_cache)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
 
+        self.radio_stations = collections.OrderedDict()
+
         self.sidemenubar_frame = tk.Frame(self.master, width=250)
         self.sidemenubar_frame.grid(row=0, column=0, rowspan=2, sticky="ns")
         self.sidemenubar_frame.grid_rowconfigure(0, weight=1)
@@ -50,58 +52,25 @@ class music_player:
         self.sidemenubar_treeview.heading("#0", text='Options')
         self.local_collection = self.sidemenubar_treeview.insert('', 'end', text='Local Collection', open=tk.TRUE)
         self.sidemenubar_treeview.insert(self.local_collection, 0, text='Music Collection')
+        self.online_sources = self.sidemenubar_treeview.insert('', 'end', text='Online Sources')
+        self.sidemenubar_treeview.insert(self.online_sources, 0, text='Radio Collection')
         self.sidemenubar_treeview.selection_set('I002')
         self.sidemenubar_treeview.focus('I002')
 
         self.main_frame = tk.Frame(self.master)
         self.main_frame.grid(row=0, column=1, columnspan=3, rowspan=2, sticky='nsew')
 
-        self.main_frame_change()
-
         self.controls_frame = tk.Frame(self.master, bg='white')
         self.controls_frame.grid(row=2, column=0, columnspan=4, sticky="nsew")
+        self.main_frame_change()
 
-        self.previous_track = ttk.Button(self.controls_frame, text="Previous Track", command=lambda: self.change_song(-1))
-        self.previous_track.grid(row=0, column=0)
-
-        self.play_butt = ttk.Button(self.controls_frame, text="Play/Pause", command=lambda: self.play_pause())
-        self.play_butt.grid(row=0, column=1)
-
-        self.next_track = ttk.Button(self.controls_frame, text="Next Track", command=lambda: self.change_song(1))
-        self.next_track.grid(row=0, column=2)
-
-        self.album_icon = tk.Label(self.controls_frame, bg='white')
-        self.album_icon.grid(row=0, column=3)
-
-        self.song_title = tk.Label(self.controls_frame, bg='white')
-        self.song_title.grid(row=0, column=4)
-
-        self.song_prog_scl_var = tk.StringVar()
-        self.song_prog_scl_var.set(0)
-        self.song_prog_scl_var.trace('w', self.slider_change)
-        self.song_prog_scl = ttk.Scale(self.controls_frame, from_=0, to=100, orient='horizontal', variable=self.song_prog_scl_var)
-        self.song_prog_scl.grid(row=0, column=5, sticky='ew')
-        self.controls_frame.grid_columnconfigure(5, weight=1)
-
-        self.song_prog_lbl = tk.Label(self.controls_frame, bg='white')
-        self.song_prog_lbl.grid(row=0, column=6)
-
-        self.repeat_butt = ttk.Button(self.controls_frame, text='Repeat', command=lambda: self.is_repeat.set(not self.is_repeat.get()))
-        self.repeat_butt.grid(row=0, column=7)
-
-        self.shuffle_butt = ttk.Button(self.controls_frame, text='Shuffle Play', command=lambda: self.is_random.set(not self.is_random.get()))
-        self.shuffle_butt.grid(row=0, column=8)
 
         self.master.grid_rowconfigure(0, weight=1)
         self.master.grid_rowconfigure(1, weight=1)
         self.master.grid_columnconfigure(1, weight=1)
         self.master.grid_columnconfigure(2, weight=1)
         self.master.grid_columnconfigure(3, weight=1)
-        self.main_frame.grid_rowconfigure(0, weight=1)
-        self.main_frame.grid_rowconfigure(1, weight=1)
-        self.main_frame.grid_columnconfigure(0, weight=1)
-        self.main_frame.grid_columnconfigure(1, weight=1)
-        self.main_frame.grid_columnconfigure(2, weight=1)
+
 
         self.artists = {}
         self.albums = {}
@@ -132,6 +101,7 @@ class music_player:
         self.is_repeat.set(False)
 
         self.curr_song = None
+        self.curr_radio_station = None
         self.skip_trace = False
 
         self.open_cache()
@@ -139,6 +109,8 @@ class music_player:
     def main_frame_change(self):
         if self.sidemenubar_treeview.focus() == 'I002':
             self.music_collection_init()
+        elif self.sidemenubar_treeview.focus() == 'I004':
+            self.radio_collection_init()
 
     def music_collection_init(self):
         for widget in self.main_frame.winfo_children():
@@ -166,6 +138,137 @@ class music_player:
                 self.music_treeview.heading(col, text=col, command=lambda: self.refresh_treeviews('music', sort_by='Duration'))
             else:
                 self.music_treeview.heading(col, text=col, command=lambda sort_by=col: self.refresh_treeviews('music', sort_by=sort_by))
+
+        self.main_frame.grid_rowconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(1, weight=1)
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_columnconfigure(1, weight=1)
+        self.main_frame.grid_columnconfigure(2, weight=1)
+
+        ########################################## Controls Frame ###################################################
+        for widget in self.controls_frame.winfo_children():
+            widget.destroy()
+
+        self.previous_track = ttk.Button(self.controls_frame, text="Previous Track", command=lambda: self.change_song(-1))
+        self.previous_track.grid(row=0, column=0)
+
+        self.play_butt = ttk.Button(self.controls_frame, text="Play/Pause", command=lambda: self.play_pause())
+        self.play_butt.grid(row=0, column=1)
+
+        self.next_track = ttk.Button(self.controls_frame, text="Next Track", command=lambda: self.change_song(1))
+        self.next_track.grid(row=0, column=2)
+
+        self.album_icon = tk.Label(self.controls_frame, bg='white')
+        self.album_icon.grid(row=0, column=3)
+
+        self.song_title = tk.Label(self.controls_frame, bg='white')
+        self.song_title.grid(row=0, column=4)
+
+        self.song_prog_scl_var = tk.StringVar()
+        self.song_prog_scl_var.set(0)
+        self.song_prog_scl_var.trace('w', self.slider_change)
+        self.song_prog_scl = ttk.Scale(self.controls_frame, from_=0, to=100, orient='horizontal', variable=self.song_prog_scl_var)
+        self.song_prog_scl.grid(row=0, column=5, sticky='ew')
+        self.controls_frame.grid_columnconfigure(5, weight=1)
+        self.controls_frame.grid_columnconfigure(0, weight=0)
+
+        self.song_prog_lbl = tk.Label(self.controls_frame, bg='white')
+        self.song_prog_lbl.grid(row=0, column=6)
+
+        self.repeat_butt = ttk.Button(self.controls_frame, text='Repeat', command=lambda: self.is_repeat.set(not self.is_repeat.get()))
+        self.repeat_butt.grid(row=0, column=7)
+
+        self.shuffle_butt = ttk.Button(self.controls_frame, text='Shuffle Play', command=lambda: self.is_random.set(not self.is_random.get()))
+        self.shuffle_butt.grid(row=0, column=8)
+
+
+    def radio_collection_init(self):
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+        self.radio_station_treeview = ScrolledTreeView(self.main_frame)
+        self.radio_station_treeview.grid(row=1, column=0, sticky="nsew")
+        self.radio_station_treeview.heading("#0", text='Station Name')
+        self.radio_station_treeview["columns"] = ("URL",)
+        self.radio_station_treeview.heading("URL", text='URL')
+
+        self.radio_stations.update({ # SOURCE: http://steveseear.org/high-quality-bbc-radio-streams/
+            'BBC Radio 1': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio1_mf_p',
+			'BBC Radio 1xtra': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio1xtra_mf_p',
+			'BBC Radio 2': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio2_mf_p',
+			'BBC Radio 3': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio3_mf_p',
+			'BBC Radio 4FM': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio4fm_mf_p',
+			'BBC Radio 4LW': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio4lw_mf_p',
+			'BBC Radio 4 Extra': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio4extra_mf_p',
+			'BBC Radio 5 Live': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio5live_mf_p',
+			'BBC Radio 5 Live Sportsball Extra': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio5extra_mf_p',
+			'BBC Radio 6 Music': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_6music_mf_p',
+			'BBC Asian Network': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_asianet_mf_p',
+			'BBC World Service UK stream': 'http://bbcwssc.ic.llnwd.net/stream/bbcwssc_mp1_ws-eieuk',
+            'BBC World Service News stream': 'http://bbcwssc.ic.llnwd.net/stream/bbcwssc_mp1_ws-einws',
+            'Radio Cymru': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_cymru_mf_p',
+			'BBC Radio Foyle': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_foyle_mf_p',
+			'BBC Radio nan Gàidheal': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_nangaidheal_mf_p',
+			'BBC Radio Scotland': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_scotlandfm_mf_p',
+			'BBC Radio Ulster': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_ulster_mf_p',
+			'BBC Radio Wales': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_walesmw_mf_p',
+			'BBC Radio Berkshire': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrberk_mf_p',
+			'BBC Radio Bristol': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrbris_mf_p',
+			'BBC Radio Cambridgeshire': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrcambs_mf_p',
+			'BBC Radio Cornwall': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrcorn_mf_p',
+			'BBC Coventry & Warwickshire': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrwmcandw_mf_p',
+			'BBC Radio Cumbria': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrcumbria_mf_p',
+			'BBC Radio Derby': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrderby_mf_p',
+			'BBC Radio Devon': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrdevon_mf_p',
+			'BBC Essex': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lressex_mf_p',
+			'BBC Radio Gloucestershire': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrgloucs_mf_p',
+			'BBC Radio Guernsey': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrguern_mf_p',
+			'BBC Hereford & Worcester': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrhandw_mf_p',
+			'BBC Radio Humberside': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrhumber_mf_p',
+			'BBC Radio Jersey': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrjersey_mf_p',
+			'BBC Radio Kent': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrkent_mf_p',
+			'BBC Radio Lancashire': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrlancs_mf_p',
+			'BBC Radio Leeds': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrleeds_mf_p',
+			'BBC Radio Leicester': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrleics_mf_p',
+			'BBC Radio Lincolnshire': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrlincs_mf_p',
+			'BBC Radio London': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrldn_mf_p',
+			'BBC Radio Manchester': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrmanc_mf_p',
+			'BBC Radio Merseyside': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrmersey_mf_p',
+			'BBC Newcastle': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrnewc_mf_p',
+			'BBC Radio Norfolk': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrnorfolk_mf_p',
+			'BBC Radio Northampton': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrnthhnts_mf_p',
+			'BBC Radio Nottingham': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrnotts_mf_p',
+			'BBC Radio Oxford': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lroxford_mf_p',
+			'BBC Radio Sheffield': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrsheff_mf_p',
+			'BBC Radio Shropshire': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrshrops_mf_p',
+			'BBC Radio Solent': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrsolent_mf_p',
+			'BBC Somerset': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrsomer_mf_p',
+			'BBC Radio Stoke': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrsomer_mf_p',
+			'BBC Radio Suffolk': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrsuffolk_mf_p',
+			'BBC Surrey': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrsurrey_mf_p',
+			'BBC Sussex': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrsussex_mf_p',
+			'BBC Tees': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrtees_mf_p',
+			'BBC Three Counties Radio': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lr3cr_mf_p',
+			'BBC Wiltshire': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrwilts_mf_p',
+			'BBC WM 95.6': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrwm_mf_p',
+			'BBC Radio York': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lryork_mf_p'
+        })
+
+        self.radio_refresh_treeviews()
+        self.main_frame.grid_rowconfigure(0, weight=0)
+        self.main_frame.grid_rowconfigure(1, weight=1)
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_columnconfigure(1, weight=0)
+        self.main_frame.grid_columnconfigure(2, weight=0)
+
+        ########################################## Controls Frame ###################################################
+        for widget in self.controls_frame.winfo_children():
+            widget.destroy()
+
+        self.play_butt = ttk.Button(self.controls_frame, text="Play/Stop", command=lambda: self.radio_play_stop())
+        self.play_butt.grid(row=0, column=0, sticky='nsew')
+
+        self.controls_frame.grid_columnconfigure(5, weight=0)
+        self.controls_frame.grid_columnconfigure(0, weight=1)
 
 
     def add_folder_dialog(self):
@@ -448,6 +551,31 @@ class music_player:
                     elif line.strip().split('\xa7')[0] == 'genres':
                         self.genres = collections.OrderedDict({key: collections.OrderedDict(value) for key, value in ast.literal_eval(line.strip().split('\xa7')[1]).items()})
             self.refresh_treeviews(tree='all')
+
+    def radio_play_stop(self):
+        print(list(self.radio_stations.values())[int(self.radio_station_treeview.focus()[1:], 16)-1])
+
+        if self.radio_station_treeview.focus()[1:] != '':
+            radio_station = list(self.radio_stations.keys())[int(self.radio_station_treeview.focus()[1:], 16)-1]
+            if radio_station != self.curr_radio_station:
+                self.player.set_state(Gst.State.NULL)
+                self.player.set_property("uri", list(self.radio_stations.values())[int(self.radio_station_treeview.focus()[1:], 16)-1])
+                self.curr_radio_station = list(self.radio_stations.keys())[int(self.radio_station_treeview.focus()[1:], 16)-1]
+                self.player.set_state(Gst.State.PLAYING)
+            else:
+                self.player.set_state(Gst.State.NULL)
+        else:
+            self.player.set_state(Gst.State.NULL)
+
+    def radio_refresh_treeviews(self):
+        self.radio_station_treeview = ScrolledTreeView(self.main_frame)
+        self.radio_station_treeview.grid(row=1, column=0, sticky="nsew")
+        self.radio_station_treeview.heading("#0", text='Station Name')
+        self.radio_station_treeview["columns"] = ("URL",)
+        self.radio_station_treeview.heading("URL", text='URL')
+
+        for station, url in self.radio_stations.items():
+            self.radio_station_treeview.insert('', 'end', text=station, values=(url,))
 
 
 class AutoScroll(object):
