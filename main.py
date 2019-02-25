@@ -28,6 +28,7 @@ class music_player:
     def __init__(self, master):
         self.master = master
         self.master.geometry('1432x764')
+        self.master.title('simple_music_player')
 
         style = ttk.Style(self.master)
 
