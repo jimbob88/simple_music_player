@@ -6,7 +6,10 @@ except:
     import Tkinter as tk
     import ttk
     import tkMessageBox
-
+try:
+    import ttkthemes
+except:
+    pass
 import Pmw
 import platform
 import sys
@@ -26,6 +29,8 @@ class music_player:
     def __init__(self, master):
         self.master = master
         self.master.geometry('1432x764')
+
+        style = ttk.Style(self.master)
 
         self.menubar = tk.Menu(self.master)
         self.master.configure(menu=self.menubar)
@@ -62,22 +67,22 @@ class music_player:
             else:
                 self.music_treeview.heading(col, text=col, command=lambda sort_by=col: self.refresh_treeviews('music', sort_by=sort_by))
 
-        self.controls_frame = tk.Frame(self.master)
+        self.controls_frame = tk.Frame(self.master, bg='white')
         self.controls_frame.grid(row=2, column=0, columnspan=4, sticky="nsew")
 
-        self.previous_track = tk.Button(self.controls_frame, text="Previous Track", command=lambda: self.change_song(-1))
+        self.previous_track = ttk.Button(self.controls_frame, text="Previous Track", command=lambda: self.change_song(-1))
         self.previous_track.grid(row=0, column=0)
 
-        self.play_butt = tk.Button(self.controls_frame, text="Play/Pause", command=lambda: self.play_pause())
+        self.play_butt = ttk.Button(self.controls_frame, text="Play/Pause", command=lambda: self.play_pause())
         self.play_butt.grid(row=0, column=1)
 
-        self.next_track = tk.Button(self.controls_frame, text="Next Track", command=lambda: self.change_song(1))
+        self.next_track = ttk.Button(self.controls_frame, text="Next Track", command=lambda: self.change_song(1))
         self.next_track.grid(row=0, column=2)
 
-        self.album_icon = tk.Label(self.controls_frame)
+        self.album_icon = tk.Label(self.controls_frame, bg='white')
         self.album_icon.grid(row=0, column=3)
 
-        self.song_title = tk.Label(self.controls_frame)
+        self.song_title = tk.Label(self.controls_frame, bg='white')
         self.song_title.grid(row=0, column=4)
 
         self.song_prog_scl_var = tk.StringVar()
@@ -87,13 +92,13 @@ class music_player:
         self.song_prog_scl.grid(row=0, column=5, sticky='ew')
         self.controls_frame.grid_columnconfigure(5, weight=1)
 
-        self.song_prog_lbl = tk.Label(self.controls_frame)
+        self.song_prog_lbl = tk.Label(self.controls_frame, bg='white')
         self.song_prog_lbl.grid(row=0, column=6)
 
-        self.repeat_butt = tk.Button(self.controls_frame, text='Repeat', command=lambda: self.is_repeat.set(not self.is_repeat.get()))
+        self.repeat_butt = ttk.Button(self.controls_frame, text='Repeat', command=lambda: self.is_repeat.set(not self.is_repeat.get()))
         self.repeat_butt.grid(row=0, column=7)
 
-        self.shuffle_butt = tk.Button(self.controls_frame, text='Shuffle Play', command=lambda: self.is_random.set(not self.is_random.get()))
+        self.shuffle_butt = ttk.Button(self.controls_frame, text='Shuffle Play', command=lambda: self.is_random.set(not self.is_random.get()))
         self.shuffle_butt.grid(row=0, column=8)
 
         self.master.grid_rowconfigure(0, weight=1)
@@ -123,10 +128,10 @@ class music_player:
         self.is_paused = tk.BooleanVar()
         self.is_paused.set(True)
         self.is_random = tk.BooleanVar()
-        self.is_random.trace('w', lambda *args: self.shuffle_butt.configure(relief=('sunken' if self.is_random.get() else 'raised')))
+        self.is_random.trace('w', lambda *args: self.shuffle_butt.state(['pressed' if self.is_random.get() else '!pressed']))
         self.is_random.set(False)
         self.is_repeat = tk.BooleanVar()
-        self.is_repeat.trace('w', lambda *args: self.repeat_butt.configure(relief=('sunken' if self.is_repeat.get() else 'raised')))
+        self.is_repeat.trace('w', lambda *args: self.repeat_butt.state(['pressed' if self.is_random.get() else '!pressed']))
         self.is_repeat.set(False)
 
         self.curr_song = None
@@ -283,6 +288,7 @@ class music_player:
             self.song_prog_scl_var.set(percentage_passed)
             self.song_prog_scl.update()
             self.skip_trace = False
+            self.song_prog_lbl['text'] = '{0}/{1}'.format(time.strftime('%M:%S', time.gmtime(float(position) / Gst.SECOND)), time.strftime('%M:%S', time.gmtime(duration / Gst.SECOND)))
             if int(float(self.song_prog_scl_var.get())) == 100:
                 self.change_song(1)
             if repeat: self.master.after(500, self.increase_slider)
@@ -360,7 +366,7 @@ class music_player:
         progress.grid(sticky='nsew')
         for idx, filename in enumerate(arr):
             progress["value"] = idx
-            curr_file["text"] = '{filename} - ({idx}/{max})'.format(filename=os.path.basename(filename), idx=idx, max=len(arr))
+            curr_file["text"] = '{filename} - ({idx}/{max})'.format(filename=os.path.basename(filename)[0:9]+'~1'+os.path.splitext(filename)[1], idx=idx, max=len(arr))
             if not any(substring in filename.casefold() for substring in ['.mp3', '.wav', '.flac', '.wma', '.mp4', '.m4a', '.ogg', '.opus']):
                 continue
             audio_file = tinytag.TinyTag.get(filename, image=True)
@@ -539,9 +545,15 @@ def _on_shiftmouse(event, widget):
             widget.xview_scroll(1, 'units')
 
 def main():
-    root = tk.Tk()
-    music_player_gui = music_player(root)
-    root.mainloop()
+    if 'ttkthemes' in sys.modules:
+        root = ttkthemes.ThemedTk()
+        music_player_gui = music_player(root)
+        root.set_theme("radiance")
+        root.mainloop()
+    else:
+        root = tk.Tk()
+        music_player_gui = music_player(root)
+        root.mainloop()
 
 if __name__ == '__main__':
     main()
