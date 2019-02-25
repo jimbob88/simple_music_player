@@ -5,7 +5,6 @@ The idea of this program was less of making a usable music player and more a tes
 
 Setup:
 ```
-python3 -m pip install Pmw
 python3 -m pip install tinytag
 python3 -m pip install pygobject
 ```
