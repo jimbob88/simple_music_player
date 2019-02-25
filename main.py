@@ -15,6 +15,7 @@ import time
 import tinytag
 import collections
 import random
+import ast
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gst', '1.0')
@@ -31,6 +32,7 @@ class music_player:
         self.filemenu = tk.Menu(self.menubar, tearoff=0)
         self.filemenu.add_command(label="Add Folder", command=self.add_folder_dialog)
         self.filemenu.add_command(label="Open M3U", command=self.add_m3u_dialog)
+        self.filemenu.add_command(label="Save to Cache", command=self.save_to_cache)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
 
         self.sidemenubar_frame = Pmw.ScrolledFrame(self.master, usehullsize=1, hull_width=250)
@@ -107,7 +109,7 @@ class music_player:
         self.genre_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
         self.artist_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
         self.album_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
-        #self.music_treeview.bind('<<TreeviewSelect>>', lambda e: self.play_song())
+        self.music_treeview.bind('<<TreeviewSelect>>', lambda e: self.play_song())
         self.master.bind('f5', lambda e: self.refresh_treeviews('music'))
 
         self.songs = collections.OrderedDict()
@@ -121,12 +123,16 @@ class music_player:
         self.is_paused = tk.BooleanVar()
         self.is_paused.set(True)
         self.is_random = tk.BooleanVar()
+        self.is_random.trace('w', lambda *args: self.shuffle_butt.configure(relief=('sunken' if self.is_random.get() else 'raised')))
         self.is_random.set(False)
         self.is_repeat = tk.BooleanVar()
+        self.is_repeat.trace('w', lambda *args: self.repeat_butt.configure(relief=('sunken' if self.is_repeat.get() else 'raised')))
         self.is_repeat.set(False)
 
         self.curr_song = None
         self.skip_trace = False
+
+        self.open_cache()
 
     def add_folder_dialog(self):
         folder = []
@@ -244,7 +250,7 @@ class music_player:
         elif tree == 'music':
             refresh_music(sort_by)
     def play_song(self):
-        print(list(self.songs)[int(self.music_treeview.focus()[1:], 16)])
+        print(list(self.songs)[int(self.music_treeview.focus()[1:], 16)-1])
         song = self.songs[list(self.songs.keys())[int(self.music_treeview.focus()[1:], 16)-1]]
         self.song_title['text'] = song['Title']
         if song != self.curr_song: self.player.set_state(Gst.State.NULL)
@@ -259,11 +265,16 @@ class music_player:
             self.start_time = time.time()
             self.master.after(500, self.increase_slider)
         else:
-            self.player.set_state(Gst.State.PAUSED)
+            if self.songs[list(self.songs.keys())[int(self.music_treeview.focus()[1:], 16)-1]] != self.curr_song:
+                self.player.set_state(Gst.State.NULL)
+                self.play_song()
+                self.increase_slider(repeat=False)
+            else:
+                self.player.set_state(Gst.State.PAUSED)
 
         self.is_paused.set(not self.is_paused.get())
 
-    def increase_slider(self):
+    def increase_slider(self, repeat=True):
         if self.player.get_state(1).state == Gst.State.PLAYING:
             status,position = self.player.query_position(Gst.Format.TIME)
             success, duration = self.player.query_duration(Gst.Format.TIME)
@@ -274,7 +285,7 @@ class music_player:
             self.skip_trace = False
             if int(float(self.song_prog_scl_var.get())) == 100:
                 self.change_song(1)
-            self.master.after(500, self.increase_slider)
+            if repeat: self.master.after(500, self.increase_slider)
 
     def change_song(self, change):
         self.player.set_state(Gst.State.NULL)
@@ -335,10 +346,12 @@ class music_player:
 
 
     def import_array(self, arr):
-        prog_win = tk.Toplevel()
+        prog_win = tk.Toplevel(master=self.master)
         prog_win.title("Progress")
         prog_win.resizable(False, False)
         prog_win.wm_attributes('-type', 'splash')
+        prog_win.attributes("-topmost", True)
+
         curr_file = tk.Label(prog_win, text="")
         curr_file.grid(sticky='nsew')
         progress = ttk.Progressbar(prog_win, orient="horizontal",
@@ -351,7 +364,7 @@ class music_player:
             if not any(substring in filename.casefold() for substring in ['.mp3', '.wav', '.flac', '.wma', '.mp4', '.m4a', '.ogg', '.opus']):
                 continue
             audio_file = tinytag.TinyTag.get(filename, image=True)
-            song = collections.OrderedDict({
+            song = {
                 'Artist': audio_file.artist,
                 'Album': audio_file.album,
                 'Album Artist':  audio_file.albumartist,
@@ -362,7 +375,7 @@ class music_player:
                 'Duration': audio_file.duration,
                 'Image': audio_file.get_image(),
                 'File': filename
-                })
+                }
             title = 'Disc {0} - {1} - {2}'.format(song['Disc'], song['Track Number'], song['Title'])
             try:
                 self.artists[song['Artist']][title] = song
@@ -379,6 +392,23 @@ class music_player:
             prog_win.update()
         self.refresh_treeviews()
         prog_win.destroy()
+
+    def save_to_cache(self):
+        with open('cache.txt', 'w') as f:
+            f.write('artists\xa7{artists}\n'.format(artists=dict({key: dict(value) for key, value in self.artists.items()})))
+            f.write('albums\xa7{albums}\n'.format(albums=dict({key: dict(value) for key, value in self.albums.items()})))
+            f.write('genres\xa7{genres}\n'.format(genres=dict({key: dict(value) for key, value in self.genres.items()})))
+    def open_cache(self):
+        if os.path.isfile('cache.txt'):
+            with open('cache.txt', 'r') as f:
+                for line in f:
+                    if line.strip().split('\xa7')[0] == 'artists':
+                        self.artists = collections.OrderedDict({key: collections.OrderedDict(value) for key, value in ast.literal_eval(line.strip().split('\xa7')[1]).items()})
+                    elif line.strip().split('\xa7')[0] == 'albums':
+                        self.albums = collections.OrderedDict({key: collections.OrderedDict(value) for key, value in ast.literal_eval(line.strip().split('\xa7')[1]).items()})
+                    elif line.strip().split('\xa7')[0] == 'genres':
+                        self.genres = collections.OrderedDict({key: collections.OrderedDict(value) for key, value in ast.literal_eval(line.strip().split('\xa7')[1]).items()})
+            self.refresh_treeviews(tree='all')
 
 
 class AutoScroll(object):
