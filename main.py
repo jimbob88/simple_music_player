@@ -131,7 +131,7 @@ class music_player:
         self.is_random.trace('w', lambda *args: self.shuffle_butt.state(['pressed' if self.is_random.get() else '!pressed']))
         self.is_random.set(False)
         self.is_repeat = tk.BooleanVar()
-        self.is_repeat.trace('w', lambda *args: self.repeat_butt.state(['pressed' if self.is_random.get() else '!pressed']))
+        self.is_repeat.trace('w', lambda *args: self.repeat_butt.state(['pressed' if self.is_repeat.get() else '!pressed']))
         self.is_repeat.set(False)
 
         self.curr_song = None
@@ -255,13 +255,14 @@ class music_player:
         elif tree == 'music':
             refresh_music(sort_by)
     def play_song(self):
-        print(list(self.songs)[int(self.music_treeview.focus()[1:], 16)-1])
-        song = self.songs[list(self.songs.keys())[int(self.music_treeview.focus()[1:], 16)-1]]
-        self.song_title['text'] = song['Title']
-        if song != self.curr_song: self.player.set_state(Gst.State.NULL)
-        self.player.set_property("uri", "file://" + os.path.realpath(song['File']))
+        if self.music_treeview.focus()[1:] != '':
+            print(list(self.songs)[int(self.music_treeview.focus()[1:], 16)-1])
+            song = self.songs[list(self.songs.keys())[int(self.music_treeview.focus()[1:], 16)-1]]
+            self.song_title['text'] = song['Title']
+            if song != self.curr_song: self.player.set_state(Gst.State.NULL)
+            self.player.set_property("uri", "file://" + os.path.realpath(song['File']))
+            self.curr_song = song
         self.player.set_state(Gst.State.PLAYING)
-        self.curr_song = song
 
     def play_pause(self):
         print(self.player.get_state(10).state)
@@ -270,10 +271,13 @@ class music_player:
             self.start_time = time.time()
             self.master.after(500, self.increase_slider)
         else:
-            if self.songs[list(self.songs.keys())[int(self.music_treeview.focus()[1:], 16)-1]] != self.curr_song:
-                self.player.set_state(Gst.State.NULL)
-                self.play_song()
-                self.increase_slider(repeat=False)
+            if self.music_treeview.focus()[1:] != '':
+                if self.songs[list(self.songs.keys())[int(self.music_treeview.focus()[1:], 16)-1]] != self.curr_song:
+                    self.player.set_state(Gst.State.NULL)
+                    self.play_song()
+                    self.increase_slider(repeat=False)
+                else:
+                    self.player.set_state(Gst.State.PAUSED)
             else:
                 self.player.set_state(Gst.State.PAUSED)
 
@@ -548,7 +552,7 @@ def main():
     if 'ttkthemes' in sys.modules:
         root = ttkthemes.ThemedTk()
         music_player_gui = music_player(root)
-        root.set_theme("radiance")
+        root.set_theme("plastik")
         root.mainloop()
     else:
         root = tk.Tk()
