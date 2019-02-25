@@ -10,7 +10,6 @@ try:
     import ttkthemes
 except:
     pass
-import Pmw
 import platform
 import sys
 import os
@@ -40,35 +39,24 @@ class music_player:
         self.filemenu.add_command(label="Save to Cache", command=self.save_to_cache)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
 
-        self.sidemenubar_frame = Pmw.ScrolledFrame(self.master, usehullsize=1, hull_width=250)
+        self.sidemenubar_frame = tk.Frame(self.master, width=250)
         self.sidemenubar_frame.grid(row=0, column=0, rowspan=2, sticky="ns")
+        self.sidemenubar_frame.grid_rowconfigure(0, weight=1)
+        self.sidemenubar_frame.grid_columnconfigure(0, weight=1)
+
+        self.sidemenubar_treeview = ScrolledTreeView(self.sidemenubar_frame)
+        self.sidemenubar_treeview.grid(row=0, column=0, sticky="nsew", pady=5)
+
+        self.sidemenubar_treeview.heading("#0", text='Options')
+        self.local_collection = self.sidemenubar_treeview.insert('', 'end', text='Local Collection', open=tk.TRUE)
+        self.sidemenubar_treeview.insert(self.local_collection, 0, text='Music Collection')
+        self.sidemenubar_treeview.selection_set('I002')
+        self.sidemenubar_treeview.focus('I002')
 
         self.main_frame = tk.Frame(self.master)
         self.main_frame.grid(row=0, column=1, columnspan=3, rowspan=2, sticky='nsew')
 
-        self.genre_treeview = ScrolledTreeView(self.main_frame)
-        self.genre_treeview.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-        self.genre_treeview.heading("#0", text="Genre")
-
-        self.artist_treeview = ScrolledTreeView(self.main_frame)
-        self.artist_treeview.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
-        self.artist_treeview.heading("#0", text="Artist")
-
-        self.album_treeview = ScrolledTreeView(self.main_frame)
-        self.album_treeview.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
-        self.album_treeview.heading("#0", text="Album")
-
-        self.music_treeview = ScrolledTreeView(self.main_frame)
-        self.music_treeview.grid(row=1, column=0, columnspan=3, sticky="nsew")
-        self.music_treeview["columns"] = ("Title", "Genre", "Artist", "Album", "Time")
-        self.music_treeview.heading("#0", text='Track', command=lambda: self.refresh_treeviews('music', sort_by='Track Number'))
-        self.music_treeview.column("#0", width=20)
-        for col in self.music_treeview["columns"]:
-            if col == "Time":
-                self.music_treeview.column(col, width=30)
-                self.music_treeview.heading(col, text=col, command=lambda: self.refresh_treeviews('music', sort_by='Duration'))
-            else:
-                self.music_treeview.heading(col, text=col, command=lambda sort_by=col: self.refresh_treeviews('music', sort_by=sort_by))
+        self.main_frame_change()
 
         self.controls_frame = tk.Frame(self.master, bg='white')
         self.controls_frame.grid(row=2, column=0, columnspan=4, sticky="nsew")
@@ -112,7 +100,7 @@ class music_player:
         self.main_frame.grid_rowconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(1, weight=1)
         self.main_frame.grid_columnconfigure(0, weight=1)
-        self.main_frame.grid_columnconfigure(2, weight=1)
+        self.main_frame.grid_columnconfigure(1, weight=1)
         self.main_frame.grid_columnconfigure(2, weight=1)
 
         self.artists = {}
@@ -123,6 +111,7 @@ class music_player:
         self.artist_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
         self.album_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
         self.music_treeview.bind('<<TreeviewSelect>>', lambda e: self.play_song())
+        self.sidemenubar_treeview.bind('<<TreeviewSelect>>', lambda e: self.main_frame_change())
         self.master.bind('f5', lambda e: self.refresh_treeviews('music'))
 
         self.songs = collections.OrderedDict()
@@ -146,6 +135,38 @@ class music_player:
         self.skip_trace = False
 
         self.open_cache()
+
+    def main_frame_change(self):
+        if self.sidemenubar_treeview.focus() == 'I002':
+            self.music_collection_init()
+
+    def music_collection_init(self):
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+        self.genre_treeview = ScrolledTreeView(self.main_frame)
+        self.genre_treeview.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.genre_treeview.heading("#0", text="Genre")
+
+        self.artist_treeview = ScrolledTreeView(self.main_frame)
+        self.artist_treeview.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        self.artist_treeview.heading("#0", text="Artist")
+
+        self.album_treeview = ScrolledTreeView(self.main_frame)
+        self.album_treeview.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+        self.album_treeview.heading("#0", text="Album")
+
+        self.music_treeview = ScrolledTreeView(self.main_frame)
+        self.music_treeview.grid(row=1, column=0, columnspan=3, sticky="nsew")
+        self.music_treeview["columns"] = ("Title", "Genre", "Artist", "Album", "Time")
+        self.music_treeview.heading("#0", text='Track', command=lambda: self.refresh_treeviews('music', sort_by='Track Number'))
+        self.music_treeview.column("#0", width=20)
+        for col in self.music_treeview["columns"]:
+            if col == "Time":
+                self.music_treeview.column(col, width=30)
+                self.music_treeview.heading(col, text=col, command=lambda: self.refresh_treeviews('music', sort_by='Duration'))
+            else:
+                self.music_treeview.heading(col, text=col, command=lambda sort_by=col: self.refresh_treeviews('music', sort_by=sort_by))
+
 
     def add_folder_dialog(self):
         folder = []
