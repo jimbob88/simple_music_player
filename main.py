@@ -311,8 +311,8 @@ class music_player:
 
     def refresh_treeviews(self, tree='all', sort_by='Track Number'):
         def refresh_genre():
-            self.genre_treeview = ScrolledTreeView(self.master)
-            self.genre_treeview.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+            self.genre_treeview = ScrolledTreeView(self.main_frame)
+            self.genre_treeview.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
             self.genre_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
             self.genre_treeview.heading("#0", text="Genre")
             self.genre_treeview.insert('', 'end', text='All Genres')
@@ -322,8 +322,8 @@ class music_player:
             for genre, value in sorted(self.genres.items()):
                 self.genre_treeview.insert('', 'end', text=genre)
         def refresh_artist():
-            self.artist_treeview = ScrolledTreeView(self.master)
-            self.artist_treeview.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+            self.artist_treeview = ScrolledTreeView(self.main_frame)
+            self.artist_treeview.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
             self.artist_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
             self.artist_treeview.heading("#0", text="Artist")
             self.artist_treeview.insert('', 'end', text='All Artists')
@@ -333,8 +333,8 @@ class music_player:
             for artist, value in sorted(self.artists.items()):
                 self.artist_treeview.insert('', 'end', text=artist)
         def refresh_album():
-            self.album_treeview = ScrolledTreeView(self.master)
-            self.album_treeview.grid(row=0, column=3, padx=5, pady=5, sticky="nsew")
+            self.album_treeview = ScrolledTreeView(self.main_frame)
+            self.album_treeview.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
             self.album_treeview.bind('<<TreeviewSelect>>', lambda e: self.refresh_treeviews('music'))
             self.album_treeview.heading("#0", text="Album")
             self.album_treeview.insert('', 'end', text='All Albums')
@@ -344,8 +344,8 @@ class music_player:
             for album, value in sorted(self.albums.items()):
                 self.album_treeview.insert('', 'end', text=album)
         def refresh_music(sort_by):
-            self.music_treeview = ScrolledTreeView(self.master)
-            self.music_treeview.grid(row=1, column=1, columnspan=3, sticky="nsew")
+            self.music_treeview = ScrolledTreeView(self.main_frame)
+            self.music_treeview.grid(row=1, column=0, columnspan=3, sticky="nsew")
             #self.music_treeview.bind('<<TreeviewSelect>>', lambda e: self.play_song())
             self.music_treeview["columns"] = ("Title", "Genre", "Artist", "Album", "Time")
 
