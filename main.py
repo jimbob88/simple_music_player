@@ -43,20 +43,23 @@ class music_player:
         self.sidemenubar_frame = Pmw.ScrolledFrame(self.master, usehullsize=1, hull_width=250)
         self.sidemenubar_frame.grid(row=0, column=0, rowspan=2, sticky="ns")
 
-        self.genre_treeview = ScrolledTreeView(self.master)
-        self.genre_treeview.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        self.main_frame = tk.Frame(self.master)
+        self.main_frame.grid(row=0, column=1, columnspan=3, rowspan=2, sticky='nsew')
+
+        self.genre_treeview = ScrolledTreeView(self.main_frame)
+        self.genre_treeview.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         self.genre_treeview.heading("#0", text="Genre")
 
-        self.artist_treeview = ScrolledTreeView(self.master)
-        self.artist_treeview.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+        self.artist_treeview = ScrolledTreeView(self.main_frame)
+        self.artist_treeview.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
         self.artist_treeview.heading("#0", text="Artist")
 
-        self.album_treeview = ScrolledTreeView(self.master)
-        self.album_treeview.grid(row=0, column=3, padx=5, pady=5, sticky="nsew")
+        self.album_treeview = ScrolledTreeView(self.main_frame)
+        self.album_treeview.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
         self.album_treeview.heading("#0", text="Album")
 
-        self.music_treeview = ScrolledTreeView(self.master)
-        self.music_treeview.grid(row=1, column=1, columnspan=3, sticky="nsew")
+        self.music_treeview = ScrolledTreeView(self.main_frame)
+        self.music_treeview.grid(row=1, column=0, columnspan=3, sticky="nsew")
         self.music_treeview["columns"] = ("Title", "Genre", "Artist", "Album", "Time")
         self.music_treeview.heading("#0", text='Track', command=lambda: self.refresh_treeviews('music', sort_by='Track Number'))
         self.music_treeview.column("#0", width=20)
@@ -106,6 +109,11 @@ class music_player:
         self.master.grid_columnconfigure(1, weight=1)
         self.master.grid_columnconfigure(2, weight=1)
         self.master.grid_columnconfigure(3, weight=1)
+        self.main_frame.grid_rowconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(1, weight=1)
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_columnconfigure(2, weight=1)
+        self.main_frame.grid_columnconfigure(2, weight=1)
 
         self.artists = {}
         self.albums = {}
