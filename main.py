@@ -185,13 +185,21 @@ class music_player:
     def radio_collection_init(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
+
+        radio_select_frame = ttk.Frame(self.main_frame)
+        ttk.Button(radio_select_frame, text="All Radio Stations", command=lambda: self.radio_refresh_treeviews('all')).grid(row=0, column=0)
+        ttk.Button(radio_select_frame, text="All Main BBC Stations", command=lambda: self.radio_refresh_treeviews('main')).grid(row=0, column=1)
+        ttk.Button(radio_select_frame, text="All BBC Stations", command=lambda: self.radio_refresh_treeviews('bbc')).grid(row=0, column=2)
+        ttk.Button(radio_select_frame, text="All Custom Stations", command=lambda: self.radio_refresh_treeviews('custom')).grid(row=0, column=3)
+        radio_select_frame.grid(row=0, column=0, sticky='nsew')
+
         self.radio_station_treeview = ScrolledTreeView(self.main_frame)
         self.radio_station_treeview.grid(row=1, column=0, sticky="nsew")
         self.radio_station_treeview.heading("#0", text='Station Name')
         self.radio_station_treeview["columns"] = ("URL",)
         self.radio_station_treeview.heading("URL", text='URL')
 
-        self.radio_stations.update({ # SOURCE: http://steveseear.org/high-quality-bbc-radio-streams/
+        self.bbc_radio_stations = { # SOURCE: http://steveseear.org/high-quality-bbc-radio-streams/
             'BBC Radio 1': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio1_mf_p',
 			'BBC Radio 1xtra': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio1xtra_mf_p',
 			'BBC Radio 2': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio2_mf_p',
@@ -251,7 +259,11 @@ class music_player:
 			'BBC Wiltshire': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrwilts_mf_p',
 			'BBC WM 95.6': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lrwm_mf_p',
 			'BBC Radio York': 'http://bbcmedia.ic.llnwd.net/stream/bbcmedia_lryork_mf_p'
-        })
+        }
+        self.main_bbc_radio_stations = {station: url for station, url in self.bbc_radio_stations.items() if station in ['BBC Radio 1', 'BBC Radio 2', 'BBC Radio 3', 'BBC Radio 4FM', 'BBC Radio 4LW', 'BBC Radio 6 Music']}
+        self.other_bbc_radio_stations = {station: url for station, url in self.bbc_radio_stations.items() if station not in ['BBC Radio 1', 'BBC Radio 2', 'BBC Radio 3', 'BBC Radio 4FM', 'BBC Radio 4LW', 'BBC Radio 6 Music']}
+        self.not_bbc_radio_stations = {station: url for station, url in self.radio_stations.items() if station not in list(self.bbc_radio_stations.keys())}
+        self.radio_stations.update(self.bbc_radio_stations)
 
         self.radio_refresh_treeviews()
         self.main_frame.grid_rowconfigure(0, weight=0)
@@ -259,6 +271,7 @@ class music_player:
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_columnconfigure(1, weight=0)
         self.main_frame.grid_columnconfigure(2, weight=0)
+        self.main_frame.grid_columnconfigure(3, weight=0)
 
         ########################################## Controls Frame ###################################################
         for widget in self.controls_frame.winfo_children():
@@ -553,28 +566,36 @@ class music_player:
             self.refresh_treeviews(tree='all')
 
     def radio_play_stop(self):
-        print(list(self.radio_stations.values())[int(self.radio_station_treeview.focus()[1:], 16)-1])
+        print(list(self.visible_stations.values())[int(self.radio_station_treeview.focus()[1:], 16)-1])
 
         if self.radio_station_treeview.focus()[1:] != '':
-            radio_station = list(self.radio_stations.keys())[int(self.radio_station_treeview.focus()[1:], 16)-1]
+            radio_station = list(self.visible_stations.keys())[int(self.radio_station_treeview.focus()[1:], 16)-1]
             if radio_station != self.curr_radio_station:
                 self.player.set_state(Gst.State.NULL)
-                self.player.set_property("uri", list(self.radio_stations.values())[int(self.radio_station_treeview.focus()[1:], 16)-1])
-                self.curr_radio_station = list(self.radio_stations.keys())[int(self.radio_station_treeview.focus()[1:], 16)-1]
+                self.player.set_property("uri", list(self.visible_stations.values())[int(self.radio_station_treeview.focus()[1:], 16)-1])
+                self.curr_radio_station = list(self.visible_stations.keys())[int(self.radio_station_treeview.focus()[1:], 16)-1]
                 self.player.set_state(Gst.State.PLAYING)
             else:
                 self.player.set_state(Gst.State.NULL)
         else:
             self.player.set_state(Gst.State.NULL)
 
-    def radio_refresh_treeviews(self):
+    def radio_refresh_treeviews(self, stations='all'):
         self.radio_station_treeview = ScrolledTreeView(self.main_frame)
-        self.radio_station_treeview.grid(row=1, column=0, sticky="nsew")
+        self.radio_station_treeview.grid(row=1, column=0, columnspan=4, sticky="nsew")
         self.radio_station_treeview.heading("#0", text='Station Name')
         self.radio_station_treeview["columns"] = ("URL",)
         self.radio_station_treeview.heading("URL", text='URL')
 
-        for station, url in self.radio_stations.items():
+
+        self.main_bbc_radio_stations = {station: url for station, url in self.bbc_radio_stations.items() if station in ['BBC Radio 1', 'BBC Radio 2', 'BBC Radio 3', 'BBC Radio 4FM', 'BBC Radio 4LW', 'BBC Radio 6 Music']}
+        self.other_bbc_radio_stations = {station: url for station, url in self.bbc_radio_stations.items() if station not in ['BBC Radio 1', 'BBC Radio 2', 'BBC Radio 3', 'BBC Radio 4FM', 'BBC Radio 4LW', 'BBC Radio 6 Music']}
+        self.not_bbc_radio_stations = {station: url for station, url in self.radio_stations.items() if station not in list(self.bbc_radio_stations.keys())}
+        self.visible_stations = self.main_bbc_radio_stations if stations == 'main' else self.bbc_radio_stations if stations == 'bbc' else self.radio_stations if stations == 'all' else {k: v for k, v in self.radio_stations.items() if k not in self.bbc_radio_stations}
+
+
+        print(list(self.radio_stations.keys()))
+        for station, url in self.visible_stations.items():
             self.radio_station_treeview.insert('', 'end', text=station, values=(url,))
 
 
