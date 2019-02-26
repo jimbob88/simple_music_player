@@ -458,6 +458,7 @@ class music_player:
             id = self.music_treeview.get_children()[int(self.music_treeview.focus()[1:], 16)+change-1]
         self.music_treeview.selection_set(id)
         self.music_treeview.focus(id)
+        self.music_treeview.yview(int(id[1:], 16)-1)
         self.play_pause()
         self.play_pause()
 
@@ -760,13 +761,7 @@ def _create_container(func):
         return func(cls, container, **kw)
     return wrapped
 
-class ScrolledListBox(AutoScroll, tk.Listbox):
-    '''A standard Tkinter text widget with scrollbars that will
-    automatically show/hide as needed.'''
-    @_create_container
-    def __init__(self, master, **kw):
-        tk.Listbox.__init__(self, master, **kw)
-        AutoScroll.__init__(self, master)
+
 
 class ScrolledTreeView(AutoScroll, ttk.Treeview):
     '''A standard ttk Treeview widget with scrollbars that will
