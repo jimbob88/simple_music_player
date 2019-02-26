@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 try:
     import tkinter as tk
     import tkinter.ttk as ttk
@@ -440,7 +441,8 @@ class music_player:
             success, duration = self.player.query_duration(Gst.Format.TIME)
             percentage_passed = float(position) / Gst.SECOND * (100 / (duration / Gst.SECOND))
             self.skip_trace = True
-            self.song_prog_scl_var.set(percentage_passed)
+            self.song_prog_scl["to"] = duration
+            self.song_prog_scl_var.set(position)
             self.song_prog_scl.update()
             self.skip_trace = False
             self.song_prog_lbl['text'] = '{0}/{1}'.format(time.strftime('%M:%S', time.gmtime(float(position) / Gst.SECOND)), time.strftime('%M:%S', time.gmtime(duration / Gst.SECOND)))
@@ -465,7 +467,7 @@ class music_player:
     def slider_change(self, *args):
         if not self.skip_trace:
             success, duration = self.player.query_duration(Gst.Format.TIME)
-            self.player.seek_simple(Gst.Format.TIME,  Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, (float(self.song_prog_scl_var.get())/100)*duration)
+            self.player.seek_simple(Gst.Format.TIME,  Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, float(self.song_prog_scl_var.get()))
             self.master.after(1000, self.increase_slider)
 
     def add_m3u_dialog(self):
@@ -524,7 +526,7 @@ class music_player:
         for idx, filename in enumerate(arr):
             progress["value"] = idx
             curr_file["text"] = '{filename} - ({idx}/{max})'.format(filename=os.path.basename(filename)[0:9]+'~1'+os.path.splitext(filename)[1], idx=idx, max=len(arr))
-            if not any(substring in filename.casefold() for substring in ['.mp3', '.wav', '.flac', '.wma', '.mp4', '.m4a', '.ogg', '.opus']):
+            if not any(substring in filename.lower() for substring in ['.mp3', '.wav', '.flac', '.wma', '.mp4', '.m4a', '.ogg', '.opus']):
                 continue
             audio_file = tinytag.TinyTag.get(filename, image=True)
             song = {
@@ -539,7 +541,7 @@ class music_player:
                 'Image': audio_file.get_image(),
                 'File': filename
                 }
-            title = 'Disc {0} - {1} - {2}'.format(song['Disc'], song['Track Number'], song['Title'])
+            title = u'Disc {0} - {1} - {2}'.format(song['Disc'], song['Track Number'], song['Title']).encode('utf-8')
             try:
                 self.artists[song['Artist']][title] = song
             except KeyError:
@@ -633,8 +635,8 @@ class music_player:
                 if search_var.get() != '' and len(self.songs) > 2:
                     songs = {}
                     for title, value in self.songs.items():
-                        inner_dict = {key: val.casefold() for key, val in value.items() if type(val) == str}
-                        if any({var: search_var.get().casefold() in x for var, x in inner_dict.items()}.values()):
+                        inner_dict = {key: val.lower() for key, val in value.items() if type(val) == str}
+                        if any({var: search_var.get().lower() in x for var, x in inner_dict.items()}.values()):
                             songs[title] = value
                     self.songs = collections.OrderedDict(songs)
                     genres = collections.OrderedDict()
