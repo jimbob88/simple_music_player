@@ -1,7 +1,7 @@
 # simple_music_player
 A Simple Tkinter Music Player for Ubuntu based off [Rhythmbox](https://github.com/GNOME/rhythmbox "Rhythmbox's Home Page")
 
-The idea of this program was less of making a usable music player and more a test of what I could build with Tkinter (Built as a test for what I could make a GUI do), hence the lack of some features, ~like continual playing of music via playlists~, and also lack of support for opening windows playlists, I may add these features later down the line.
+The idea of this program was less of making a usable music player and more a test of what I could build with Tkinter (Built as a test for what I could make a GUI do), hence the lack of some features, ~like continual playing of music via playlists~, ~and also lack of support for opening windows playlists~, I may add these features later down the line.
 
 Setup:
 ```
